@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: smhs-hospital
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: NUM_PROXIES
+        value: "1"
+      - key: SMS_BACKEND
+        value: console

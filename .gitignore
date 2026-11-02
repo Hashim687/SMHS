@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.sqlite3
+node_modules/
+dist/
+venv/
+frontend_dist/
+run.bat
+backups/
+certs/

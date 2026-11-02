@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: always
+  web:
+    build: ./backend
+    env_file: .env
+    depends_on:
+      db: {condition: service_healthy}
+    expose: ["8000"]
+    restart: always
+  worker:
+    build: ./backend
+    env_file: .env
+    command: ["python", "manage.py", "send_notifications", "--loop"]
+    depends_on: [web]
+    restart: always
+  nginx:
+    build:
+      context: .
+      dockerfile: deploy/nginx.Dockerfile
+    ports: ["80:80", "443:443"]
+    volumes: ["./certs:/etc/nginx/certs:ro"]
+    depends_on: [web]
+    restart: always
+volumes:
+  pgdata:

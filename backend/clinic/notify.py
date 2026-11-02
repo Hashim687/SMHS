@@ -1,5 +1,8 @@
+import base64
 import json
 import logging
+import re
+import urllib.parse
 import urllib.request
 
 from django.conf import settings
@@ -35,8 +38,24 @@ def deliver(n):
             send_mail(n.subject, n.text, None, [n.to])
         elif b == "memory":
             SENT.append((n.to, n.text))
-        elif b == "console" and settings.DEBUG:
-            log.info("SMS to %s: %s", n.to, n.text)
+        elif b == "console":
+            log.warning("SMS to %s: %s", n.to, n.text if not n.redact or settings.DEBUG or settings.DEMO_SHOW_OTP else "[hidden]")
+        elif b == "twilio" and settings.TWILIO_SID:
+            to = n.to if n.to.startswith("+") else settings.SMS_COUNTRY_CODE + n.to
+            data = urllib.parse.urlencode({"To": to, "From": settings.TWILIO_FROM, "Body": n.text}).encode()
+            req = urllib.request.Request(f"https://api.twilio.com/2010-04-01/Accounts/{settings.TWILIO_SID}/Messages.json", data)
+            req.add_header("Authorization", "Basic " + base64.b64encode(f"{settings.TWILIO_SID}:{settings.TWILIO_TOKEN}".encode()).decode())
+            urllib.request.urlopen(req, timeout=15).close()
+        elif b == "fast2sms" and settings.FAST2SMS_KEY:
+            if settings.FAST2SMS_ROUTE == "otp":
+                m = re.search(r"\b(\d{4,8})\b", n.text)
+                if not m:
+                    raise RuntimeError("fast2sms otp route sends only OTP messages")
+                form = {"route": "otp", "variables_values": m.group(1), "numbers": n.to[-10:]}
+            else:
+                form = {"route": settings.FAST2SMS_ROUTE, "message": n.text, "numbers": n.to[-10:]}
+            req = urllib.request.Request("https://www.fast2sms.com/dev/bulkV2", urllib.parse.urlencode(form).encode(), {"authorization": settings.FAST2SMS_KEY})
+            urllib.request.urlopen(req, timeout=15).close()
         elif b == "http" and settings.SMS_GATEWAY_URL:
             body = json.dumps({"to": n.to, "message": n.text, "sender": settings.SMS_SENDER}).encode()
             req = urllib.request.Request(settings.SMS_GATEWAY_URL, body, {"Content-Type": "application/json", "Authorization": "Bearer " + settings.SMS_GATEWAY_KEY})
@@ -46,8 +65,8 @@ def deliver(n):
         n.status, n.sent_at = "sent", timezone.now()
         if n.redact:
             n.text = "[redacted]"
-    except Exception:
-        log.warning("notification %s failed", n.pk)
+    except Exception as e:
+        log.warning("notification %s failed: %s", n.pk, type(e).__name__ + (": " + str(e)[:120] if not n.redact else ""))
         n.status = "failed" if n.attempts >= 5 else "pending"
     n.save()
 

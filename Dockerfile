@@ -15,4 +15,4 @@ COPY backend/ .
 COPY --from=web /web/dist ./frontend_dist
 RUN chown -R smhs /app
 USER smhs
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py createcachetable && (python manage.py shell -c \"import sys; from clinic.models import Department; sys.exit(0 if Department.objects.exists() else 1)\" || python manage.py seed) && gunicorn smhs.wsgi:application -b 0.0.0.0:${PORT:-10000} -w 2 --access-logfile - --timeout 60"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py createcachetable && (python manage.py shell -c \"import sys; from clinic.models import Department; sys.exit(0 if Department.objects.exists() else 1)\" || python manage.py seed) && (python manage.py send_notifications --loop &) && gunicorn smhs.wsgi:application -b 0.0.0.0:${PORT:-10000} -w 1 --threads 4 --access-logfile - --timeout 60"]

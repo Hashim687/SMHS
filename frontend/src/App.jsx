@@ -3,6 +3,7 @@ import {useTranslation} from "react-i18next";
 import {applyLang} from "./i18n";
 import Patient from "./Patient.jsx";
 import Staff from "./Staff.jsx";
+import {ToastProvider} from "./Toast.jsx";
 
 const LANGS = [["en", "EN"], ["ur", "اردو"], ["ks", "كٲشُر"]];
 
@@ -33,7 +34,7 @@ export default function App() {
   const staff = h === "#/staff";
   const lang = l => { i18n.changeLanguage(l); applyLang(l); };
   return (
-    <>
+    <ToastProvider>
       <a className="skip" href="#main">Skip to content</a>
       <header className={scrolled ? "scrolled" : ""}>
         <div className="brand">
@@ -59,9 +60,9 @@ export default function App() {
           </div>
         </div>
       )}
-      <main id="main">{staff ? <Staff /> : <Patient />}</main>
+      <main id="main" className={staff ? "wide" : ""}>{staff ? <Staff /> : <Patient />}</main>
       <footer>🚑 {t("footEmerg", {defaultValue: "In a life-threatening emergency, call"})} <strong>112</strong></footer>
       {scrolled === 2 && <button className="totop" type="button" aria-label="Back to top" onClick={() => scrollTo({top: 0, behavior: "smooth"})}>↑</button>}
-    </>
+    </ToastProvider>
   );
 }

@@ -79,9 +79,11 @@ export default function Patient() {
   }, [step, order]);
   const reset = () => { setF(blank); setSel([]); setOrder(null); setRes(null); setH({uid: "", phone: "", code: "", token: "", visits: [], ref: ""}); setStep("home"); setErr(""); };
 
+  const [demo, setDemo] = useState("");
   const otpReq = async e => {
     e.preventDefault();
-    await post("/api/public/patient/otp/request", {uid: h.uid.trim(), phone: h.phone});
+    const r = await post("/api/public/patient/otp/request", {uid: h.uid.trim(), phone: h.phone});
+    setDemo(r.data.demo_code || "");
     setStep("hotp");
   };
   const otpVer = async e => {
@@ -173,6 +175,7 @@ export default function Patient() {
       {step === "hotp" && (
         <form onSubmit={otpVer}>
           <p>{t("otpSent")}</p>
+          {demo && <div className="demo" role="status">🧪 {t("demoOtp", {defaultValue: "Demo mode — SMS is not connected. Your OTP is"})} <b dir="ltr">{demo}</b></div>}
           <input value={h.code} onChange={setHh("code")} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" dir="ltr" required aria-label={t("otp")} />
           <button>{t("verify")}</button>
           <button type="button" onClick={reset}>{t("back")}</button>

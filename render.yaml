@@ -13,3 +13,5 @@ services:
         value: "1"
       - key: SMS_BACKEND
         value: console
+      - key: DEMO_SHOW_OTP
+        value: "1"

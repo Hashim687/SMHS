@@ -37,3 +37,20 @@ Google Authenticator. Then add doctors, departments, prices in the admin portal.
 - SMS/OTP is not delivered (console mode). Patient OTP login needs a real SMS provider.
 - The background notification worker is not run on the free plan.
 - Never change DJANGO_SECRET_KEY after the first login (it protects 2FA secrets).
+
+## OTP / SMS on the online site
+Patients get their login OTP by SMS. Render and Neon do not send SMS, and Indian carriers only
+accept messages from registered providers, so SMS always needs a provider account.
+
+Option A - free demo (default): in Render > Environment set `DEMO_SHOW_OTP` = `1`.
+The OTP is then shown on screen in a yellow "Demo mode" box. Anyone who knows a patient's ID and
+phone can see it, so use this for demos only.
+
+Option B - real SMS (Fast2SMS): create a Fast2SMS account, add credit, copy the API key, then set in Render > Environment:
+  SMS_BACKEND = fast2sms
+  FAST2SMS_KEY = (your key)
+  FAST2SMS_ROUTE = otp        (OTP-only route; use "q" or "dlt" for other messages if your account allows)
+  DEMO_SHOW_OTP = (delete it)
+Option C - Twilio: SMS_BACKEND=twilio, TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM. Trial accounts can only text numbers you verified.
+
+Admin > System > "SMS / message log" shows whether messages were sent, pending or failed.

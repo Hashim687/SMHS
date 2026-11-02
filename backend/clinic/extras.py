@@ -90,12 +90,14 @@ class OtpRequest(Public):
     def post(self, request):
         uid, phone = str(request.data.get("uid", ""))[:16], str(request.data.get("phone", ""))[:10]
         p = Patient.objects.filter(uid=uid, phone=phone).first()
+        demo = None
         if p and PatientOTP.objects.filter(patient=p, created__gte=timezone.now() - timedelta(hours=1)).count() < 5:
             PatientOTP.objects.filter(patient=p, used=False).update(used=True)
             code = f"{secrets.randbelow(10 ** 6):06d}"
             PatientOTP.objects.create(patient=p, code_hash=self.h(code, p.pk), expires=timezone.now() + timedelta(minutes=5))
             notify.queue(p.phone, notify.text(p.language, "otp", code=code), secret=True, now=True)
-        return Response({"sent": True})
+            demo = code if settings.DEMO_SHOW_OTP else None
+        return Response({"sent": True, **({"demo_code": demo} if demo else {})})
 
     @staticmethod
     def h(code, pk):
